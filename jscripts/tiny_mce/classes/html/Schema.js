@@ -52,7 +52,7 @@
 	// Build a lookup table for block elements both lowercase and uppercase
 	blockElementsMap = 'h1,h2,h3,h4,h5,h6,hr,p,div,address,pre,form,table,tbody,thead,tfoot,' + 
 						'th,tr,td,li,ol,ul,caption,blockquote,center,dl,dt,dd,dir,fieldset,' + 
-						'noscript,menu,isindex,samp,header,footer,article,section,hgroup';
+						'noscript,menu,isindex,samp,header,footer,article,section,hgroup,figure';
 	blockElementsMap = makeMap(blockElementsMap, ',', makeMap(blockElementsMap.toUpperCase()));
 
 	// This is the XHTML 1.0 transitional elements with it's attributes and children packed to reduce it's size
