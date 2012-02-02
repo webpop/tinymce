@@ -10,7 +10,7 @@
 
 (function(tinymce) {
 	var transitional = {}, boolAttrMap, blockElementsMap, shortEndedElementsMap, nonEmptyElementsMap, customElementsMap = {},
-		whiteSpaceElementsMap, selfClosingElementsMap, makeMap = tinymce.makeMap, each = tinymce.each;
+		defaultWhiteSpaceElementsMap, selfClosingElementsMap, makeMap = tinymce.makeMap, each = tinymce.each;
 
 	function split(str, delim) {
 		return str.split(delim || ',');
@@ -175,10 +175,10 @@
 		'body[E|onload|onunload|background|bgcolor|text|link|vlink|alink][#|Y]'
 	);
 
-	boolAttrMap = makeMap('checked,compact,declare,defer,disabled,ismap,multiple,nohref,noresize,noshade,nowrap,readonly,selected,preload,autoplay,loop,controls');
+	boolAttrMap = makeMap('checked,compact,declare,defer,disabled,ismap,multiple,nohref,noresize,noshade,nowrap,readonly,selected,autoplay,loop,controls');
 	shortEndedElementsMap = makeMap('area,base,basefont,br,col,frame,hr,img,input,isindex,link,meta,param,embed,source');
-	nonEmptyElementsMap = tinymce.extend(makeMap('td,th,iframe,video,object'), shortEndedElementsMap);
-	whiteSpaceElementsMap = makeMap('pre,script,style');
+	nonEmptyElementsMap = tinymce.extend(makeMap('td,th,iframe,video,audio,object'), shortEndedElementsMap);
+	defaultWhiteSpaceElementsMap = makeMap('pre,script,style,textarea');
 	selfClosingElementsMap = makeMap('colgroup,dd,dt,li,options,p,td,tfoot,th,thead,tr');
 
 	/**
@@ -204,7 +204,7 @@
 	 * @param {Object} settings Name/value settings object.
 	 */
 	tinymce.html.Schema = function(settings) {
-		var self = this, elements = {}, children = {}, patternElements = [], validStyles;
+		var self = this, elements = {}, children = {}, patternElements = [], validStyles, whiteSpaceElementsMap;
 
 		settings = settings || {};
 
@@ -221,6 +221,8 @@
 				validStyles[key] = tinymce.explode(value);
 			});
 		}
+
+		whiteSpaceElementsMap = settings.whitespace_elements ? makeMap(settings.whitespace_elements) : defaultWhiteSpaceElementsMap;
 
 		// Converts a wildcard expression string to a regexp for example *a will become /.*a/.
 		function patternToRegExp(str) {
@@ -434,7 +436,24 @@
 					}
 				});
 			}
-		}
+		};
+
+		function getElementRule(name) {
+			var element = elements[name], i;
+
+			// Exact match found
+			if (element)
+				return element;
+
+			// No exact match then try the patterns
+			i = patternElements.length;
+			while (i--) {
+				element = patternElements[i];
+
+				if (element.pattern.test(name))
+					return element;
+			}
+		};
 
 		if (!settings.valid_elements) {
 			// No valid elements defined then clone the elements from the transitional spec
@@ -474,6 +493,10 @@
 
 		// Todo: Remove this when we fix list handling to be valid
 		addValidChildren('+ol[ul|ol],+ul[ul|ol]');
+
+		// If the user didn't allow span only allow internal spans
+		if (!getElementRule('span'))
+			addValidElements('span[!data-mce-type|*]');
 
 		// Delete invalid elements
 		if (settings.invalid_elements) {
@@ -587,22 +610,7 @@
 		 * @param {String} name Element name to check for.
 		 * @return {Object} Element object or undefined if the element isn't valid.
 		 */
-		self.getElementRule = function(name) {
-			var element = elements[name], i;
-
-			// Exact match found
-			if (element)
-				return element;
-
-			// No exact match then try the patterns
-			i = patternElements.length;
-			while (i--) {
-				element = patternElements[i];
-
-				if (element.pattern.test(name))
-					return element;
-			}
-		};
+		self.getElementRule = getElementRule;
 
 		/**
 		 * Returns an map object of all custom elements.
